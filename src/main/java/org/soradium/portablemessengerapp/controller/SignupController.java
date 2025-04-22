@@ -1,77 +1,29 @@
 package org.soradium.portablemessengerapp.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
-import org.soradium.portablemessengerapp.configurations.auth.AuthenticationProcess;
-import org.soradium.portablemessengerapp.configurations.auth.UserCredentials;
-import org.soradium.portablemessengerapp.configurations.jwt.LoginResponse;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.context.SecurityContextHolderStrategy;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.JdbcUserDetailsManager;
-import org.springframework.security.web.context.DelegatingSecurityContextRepository;
-import org.springframework.security.web.context.SecurityContextRepository;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.soradium.portablemessengerapp.dto.UsernameAsObjectDto;
+import org.soradium.portablemessengerapp.entity.User;
+import org.soradium.portablemessengerapp.service.UserServiceImpl;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Controller;
 
-@RestController
-@RequestMapping("/sec")
+@Controller
 public class SignupController {
+    // сайнап контроллер нужен для обработки сообщения от фронтапи
+    // что он зарегал нового юзера (в базу тут то надо записаться для энтитей)
+    private UserServiceImpl service;
 
-    private final AuthenticationManager authenticationManager;
-    private final SecurityContextHolderStrategy
-            securityContextHolderStrategy
-            = SecurityContextHolder.getContextHolderStrategy();
-    private final SecurityContextRepository repository;
-    private final UserDetailsService userDetailsService;
-    private final AuthenticationProcess process;
-    private final PasswordEncoder encoder;
-
-    public SignupController(
-            @Autowired AuthenticationManager authenticationManager,
-            @Autowired DelegatingSecurityContextRepository
-                    delegatingSecurityContextRepository,
-            @Autowired AuthenticationProcess process,
-            @Autowired PasswordEncoder encoder,
-            @Autowired UserDetailsService service) {
-        this.authenticationManager = authenticationManager;
-        this.repository = delegatingSecurityContextRepository;
-        this.process = process;
-        this.encoder = encoder;
-        this.userDetailsService = service;
+    public SignupController(UserServiceImpl service) {
+        this.service = service;
     }
 
-    @PostMapping("/signup")
-    public ResponseEntity<LoginResponse> signUp(
-            @RequestBody UserCredentials userCredentials,
-            HttpSession session,
-            HttpServletRequest request,
-            HttpServletResponse response) {
-        UserDetails newUser = User.builder()
-                .username(userCredentials.username())
-                .password(this.encoder.encode(
-                        userCredentials.password()))
-                .roles("USER")
-                .build();
-        JdbcUserDetailsManager service
-                = (JdbcUserDetailsManager) userDetailsService;
-        service.createUser(newUser);
-        return process.doAuth(
-                userCredentials,
-                this.securityContextHolderStrategy,
-                this.repository,
-                this.authenticationManager,
-                request,
-                response);
+    @KafkaListener(
+            id="add_new_user",
+            topics = "auth-send",
+            containerFactory = "kafkaListenerUsernameAsDtoContainerFactory"
+    )
+    public void addNewUser(UsernameAsObjectDto user) {
+        User u = new User();
+        u.setUsername(user.username());
+        service.createUser(u);
     }
-
 }

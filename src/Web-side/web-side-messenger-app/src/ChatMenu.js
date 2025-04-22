@@ -1,113 +1,158 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import * as StompJs from '@stomp/stompjs';
 import apiClient from './login-related/newApiClient';
 
-const ChatMenu = ({targetUserName}) => {
+const ChatMenu = ({ targetUserName }) => {
     const [messages, setMessages] = useState([]); // Ensure messages is initialized as an array
     const [message, setMessage] = useState(''); // Message to send
     const [client, setClient] = useState(null); // WebSocket client
+    const chatContainerRef = useRef(null); // Ref for the chat container
 
     useEffect(() => {
-        // Retrieve messages that are already in the database
+        document.body.style.overflow = 'hidden';
+
+        return () => {
+            document.body.style.overflow = 'auto';
+        };
+    }, []);
+
+    useEffect(() => {
         const fetchMessages = async () => {
             try {
                 const payload = {
-                    requestedToUser: targetUserName, // The target user passed as a prop
+                    requestedToUser: targetUserName,
                 };
 
                 const response = await apiClient.post('/chat/retrieve-messages-per-user', payload);
-                console.log('Fetched messages:', response.data);
-
-                // Ensure the response data is an array
-                setMessages(Array.isArray(response.data) ? response.data : []);
+                console.log('Request to retrieve messages sent:', response.data);
             } catch (error) {
-                console.error('Error fetching messages:', error);
-                setMessages([]); // Set to an empty array on error
+                console.error('Error sending message retrieval request:', error);
             }
         };
 
-        // Create SockJS-based STOMP client
         const stompClient = new StompJs.Client({
-            brokerURL: 'ws://localhost:8080/my-endpoint',
+            brokerURL: 'ws://localhost:8081/my-endpoint',
             debug: (str) => console.log(str),
             reconnectDelay: 5000,
             onConnect: () => {
                 console.log('Connected to WebSocket');
 
-                // Subscribe to user-specific topic
-                stompClient.subscribe('/user/topics/messages-topic', (message) => {
+                stompClient.subscribe(`/user/topics/messages-topic`, (message) => {
                     console.log('Received:', message.body);
 
-                    // Parse the message body and add it to the messages array
-                    const parsedMessage = JSON.parse(message.body);
-                    setMessages((prevMessages) => [...prevMessages, parsedMessage]);
+                    try {
+                        const parsedMessage = JSON.parse(message.body);
+
+                        if (Array.isArray(parsedMessage)) {
+                            setMessages(parsedMessage);
+                        } else if (parsedMessage.message) {
+                            setMessages((prevMessages) => [...prevMessages, parsedMessage]);
+                        } else {
+                            console.error('Unexpected message format:', parsedMessage);
+                        }
+                    } catch (error) {
+                        console.error('Error parsing message:', error);
+                    }
                 });
             },
         });
 
         fetchMessages();
-        // Activate the client
         stompClient.activate();
         setClient(stompClient);
 
         return () => {
             stompClient.deactivate();
         };
-    }, [targetUserName]); // Re-run effect when targetUserName changes
+    }, [targetUserName]);
 
-    const handleSendMessage = () => {
+    useEffect(() => {
+        // Scroll to the bottom of the chat container whenever messages change
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+    }, [messages]);
+
+    const handleSendMessage = async () => {
+        console.log('Sending message:', message);
         if (client && targetUserName && message) {
             const sentMessage = {
                 targetUserName: targetUserName,
                 message: message,
             };
+            console.log('Sending message s:', sentMessage);
+            try {
+                const response = await apiClient.post('/chat/send-message', sentMessage);
+                console.log('Message sent:', response.data);
 
-            client.publish({
-                destination: '/app/map',
-                headers: {
-                    'content-type': 'application/json',
-                },
-                body: JSON.stringify(sentMessage),
-            });
-
-            console.log('Message sent:', sentMessage);
-            setMessage(''); // Clear the message input
+                setMessages((prevMessages) => [...prevMessages, sentMessage]);
+                setMessage('');
+            } catch (error) {
+                console.error('Error sending message:', error);
+            }
         } else {
             console.error('Client not connected or missing fields');
         }
     };
 
     return (
-        <div>
-            <h2>Chat Menu</h2>
-            <div>
-                <label>
-                    Message:
-                    <input
-                        type="text"
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Enter your message"
-                    />
-                </label>
-            </div>
-            <button onClick={handleSendMessage}>Send Message</button>
-            <h3>Messages:</h3>
-            <ul>
-                {/* Ensure messages is an array and render specific properties */}
-                {Array.isArray(messages) ? (
-                    messages.map((msg, idx) => (
-                        <li key={idx}>
-                            {/* Render the 'message' property of each object */}
-                            {msg.message || 'No message content'}
-                        </li>
-                    ))
-                ) : (
-                    <li>No messages available</li>
-                )}
-            </ul>
-        </div>
-    );
-};
+  <div className="d-flex flex-column overflow-y-auto" style={{  height: "80vh"}}>
+    {/* Header */}
+    <header className="bg-primary text-white p-3">
+      <h2 className="h5 mb-0">Chat with {targetUserName}</h2>
+    </header>
 
+    {/* Chat Messages Scrollable Area */}
+    <div
+      className="flex-grow-1 overflow-auto p-3"
+      style={{  height: "60vh"}}
+      ref={chatContainerRef}
+    >
+      <ul className="list-unstyled mb-0 overflow-y-auto" style={{  height: "60vh"}}>
+        {Array.isArray(messages) ? (
+          messages.map((msg, idx) => (
+            <li
+              key={idx}
+              className={`d-flex ${
+                msg.targetUserName === targetUserName
+                  ? 'justify-content-start'
+                  : 'justify-content-end'
+              } mb-2`}
+            >
+              <span
+                className={`p-2 rounded-pill ${
+                  msg.targetUserName === targetUserName
+                    ? 'bg-dark text-light'
+                    : 'bg-primary text-light'
+                }`}
+              >
+                {msg.message || 'No message content'}
+              </span>
+            </li>
+          ))
+        ) : (
+          <li>No messages available</li>
+        )}
+      </ul>
+    </div>
+
+    {/* Footer (Input) */}
+    <footer className="p-3 border-top bg-white">
+      <div className="input-group">
+        <input
+          type="text"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          className="form-control"
+          placeholder="Enter your message"
+        />
+        <button className="btn btn-primary" onClick={handleSendMessage}>
+          Send
+        </button>
+      </div>
+    </footer>
+  </div>
+);
+
+}    
 export default ChatMenu;
