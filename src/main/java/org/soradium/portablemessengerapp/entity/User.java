@@ -12,24 +12,6 @@ public class User {
     @Column(name = "username")
     private String username;
 
-    //    @OneToMany(
-//            fetch = FetchType.LAZY,
-//            cascade = CascadeType.ALL
-//    )
-//    @JoinColumn(
-//            name = "usr_username"
-//    )
-//    private List<Message> messagesSent
-//            = new ArrayList<>();
-//    @OneToMany(
-//            fetch = FetchType.LAZY,
-//            cascade = CascadeType.ALL
-//    )
-//    @JoinColumn(
-//            name = "usr_username"
-//    )
-//    private List<Message> messagesReceived
-//            = new ArrayList<>();
     @ManyToMany(
             fetch = FetchType.LAZY,
             cascade = {
