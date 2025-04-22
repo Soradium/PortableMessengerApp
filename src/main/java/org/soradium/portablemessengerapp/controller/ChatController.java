@@ -54,12 +54,40 @@ public class ChatController {
                 , sender, receiver);
         try {
             User senderUser = userService.getUserWithFriendsByUsername(sender);
-            User receiverUser = senderUser.getFriends()
+            if(senderUser == null) {
+                String warnMsg = "Can't send message to user '" +
+                        receiver + "': Sender '" + sender
+                        + "' does not exist";
+                log.warn(warnMsg);
+                kafkaTemplate.send(
+                        "chat-response",
+                        new SentMessageDto(sender,
+                                "Can't send message to user " + receiver +
+                                "': Sender '" + sender
+                                        + "' does not exist")
+                );
+                return;
+            }
+            if(senderUser.getFriends().isEmpty()) {
+                String warnMsg = "Can't send message to user '" +
+                        receiver + "': Sender '" + sender
+                        + "' does not have any friends";
+                log.warn(warnMsg);
+                kafkaTemplate.send(
+                        "chat-response",
+                        new SentMessageDto(sender,
+                                "Can't send message to user " + receiver +
+                                        "': Sender '" + sender
+                                        + "' does not have any friends")
+                );
+                return;
+            }
+            List<User> friendsThatApplyToConstraint = senderUser.getFriends()
                     .stream().filter(u -> u.getUsername()
                             .equals(receiver))
-                    .toList().get(0);
+                    .toList();
 
-            if (receiverUser == null) {
+            if (friendsThatApplyToConstraint.isEmpty()) {
                 String warnMsg = "Can't send message to user '" + receiver + "' - not a friend of '" + sender + "'";
                 log.warn(warnMsg);
                 kafkaTemplate.send(
@@ -70,6 +98,9 @@ public class ChatController {
                 );
                 return;
             }
+
+            User receiverUser = friendsThatApplyToConstraint.get(0);
+
 
             Chat chat = null;
             try {

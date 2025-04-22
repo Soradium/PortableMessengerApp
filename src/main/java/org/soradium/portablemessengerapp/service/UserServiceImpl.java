@@ -75,25 +75,6 @@ public class UserServiceImpl {
         return u;
     }
 
-//    public User getUserWithMessagesByUsername(String username) {
-//        User u = getUserByUsername(username);
-//        if (u != null) {
-//            u.getMessagesSent().size();
-//            u.getMessagesReceived().size();
-//        }
-//        return u;
-//    }
-
-//    public User getUserWithMessagesAndFriendsByUsername(String username) {
-//        User u = getUserByUsername(username);
-//        if (u != null) {
-//            u.getMessagesSent().size();
-//            u.getMessagesReceived().size();
-//            u.getFriends().size();
-//        }
-//        return u;
-//    }
-
     @Autowired
     public void setEntityManager(
             EntityManager em) throws Exception {
