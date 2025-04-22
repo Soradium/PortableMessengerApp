@@ -1,6 +1,7 @@
 package org.soradium.portablemessengerapp.service;
 
 import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import org.soradium.portablemessengerapp.entity.Message;
 import org.soradium.portablemessengerapp.repository.MessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
+@Transactional
 public class MessageServiceImpl {
     private MessageRepository repository;
     private EntityManager em;

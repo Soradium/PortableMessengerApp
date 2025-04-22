@@ -4,81 +4,150 @@ represented with as a text input field for beta functionality of accessing parti
 person for chat reasons, BUT IT HAS TO BE REWORKED FROM GROUND UP!!!!!
 */
 
-import {useState} from "react";
-import apiClient from "./login-related/apiClient";
+import { useState, useEffect } from "react";
+import * as StompJs from "@stomp/stompjs";
+import apiClient from "./login-related/newApiClient";
+import AddFriend from "./AddFriend";
 
-const SidebarUi = (props) => {
-
-    const [openedInChat, setOpenedInChat] = props.currentChatTargetState;
+const SidebarUi = ({ currentChatTargetState, isLoggedIn }) => {
+    const [openedInChat, setOpenedInChat] = currentChatTargetState;
 
     const [formData, setFormData] = useState({
-        targetName: ''
+        targetName: "",
     });
 
-    const handleSubmit = (e) => {
+    const [client, setClient] = useState(null); // WebSocket client
+    const [fetchResponse, setFetchResponse] = useState(null); // Response from WebSocket
+    const [username, setUsername] = useState(""); // State to store the username from JWT
+
+
+    useEffect(() => {
+        const token = localStorage.getItem("jwtToken");
+        if (token) {
+            try {
+                const payload = JSON.parse(atob(token.split(".")[1])); // Decode JWT payload
+                setUsername(payload.username || "Unknown User"); // Set username from payload
+            } catch (error) {
+                console.error("Error decoding JWT:", error);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        // Create SockJS-based STOMP client
+        const stompClient = new StompJs.Client({
+            brokerURL: "ws://localhost:8081/my-endpoint",
+            debug: (str) => console.log(str),
+            reconnectDelay: 5000,
+            onConnect: () => {
+                console.log("Connected to WebSocket");
+
+                // Subscribe to user-specific topic for friend fetch responses
+                stompClient.subscribe(`/user/topics/fetch-friend`, (message) => {
+                    console.log("Received fetch response:", message.body);
+
+                    // Parse the response and update the state
+                    const parsedResponse = JSON.parse(message.body);
+                    setFetchResponse(parsedResponse.response);
+                    console.log("Parsed response:", parsedResponse.response);
+
+                    if (parsedResponse.response === "Success") {
+                        setOpenedInChat(formData.targetName); // Open chat with the target user
+                    } else {
+                        alert("Target user not found or unavailable.");
+                    }
+                });
+            },
+        });
+
+        // Activate the client
+        stompClient.activate();
+        setClient(stompClient);
+
+        return () => {
+            stompClient.deactivate();
+        };
+    }, [isLoggedIn, formData.targetName, setOpenedInChat]);
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        alert(`Field 1: ${formData.targetName}`);
-        const result = (tryToGetChatTarget(setOpenedInChat, 'USER', formData.targetName));
+
+        if (!formData.targetName.trim()) {
+            alert("Please enter a valid target name.");
+            return;
+        }
+
+        const addTargetData = {
+            target: formData.targetName,
+        };
+
+        try {
+            console.log("Sending friend fetch request:", addTargetData);
+            const response = await apiClient.post("/chat/find-target-friend", addTargetData);
+
+            if (response.status === 200) {
+                console.log("Friend fetch request successfully sent.");
+            } else {
+                console.error("Failed to send friend fetch request:", response);
+                alert("Failed to send request. Please try again.");
+            }
+        } catch (error) {
+            console.error("Error during friend fetch request:", error);
+            alert("An error occurred. Please try again.");
+        }
     };
 
     const handleChange = (e) => {
-        const {name, value} = e.target;
+        const { name, value } = e.target;
         setFormData({
             ...formData,
-            [name]: value
+            [name]: value,
         });
-
     };
 
     return (
-        <div>
-            <label>Choose user to chat with: </label>
-            <form onSubmit={handleSubmit}>
-                <input
-                    type="text"
-                    id="targetName"
-                    name="targetName"
-                    value={formData.targetName}
-                    onChange={handleChange}
-                />
-                <button type="submit">Enter chat with</button>
-            </form>
-        </div>);
-}
+        <div className="sidebar bg-light border-right shadow-sm">
+            <div className="p-3 border-bottom bg-white shadow-sm">
+                <h2 className="h5 text-primary mb-4">Sidebar</h2>
+                {isLoggedIn ? (
+                    <div className="text-center text-muted">
+                        <p>Please log in to access your chats.</p>
+                    </div>
+                ) : (
+                    <div>
+                        {/* Add Friend Section */}
+                        <div className="mb-4">
+                            <h3 className="h6 text-secondary mb-3">Add Friend</h3>
+                            <AddFriend />
+                        </div>
 
-async function tryToGetChatTarget(setOpenedInChat, targetTypePassed, targetNamePassed) {
-    const addTargetData = {
-        target: targetNamePassed,
-        targetType: targetTypePassed
-    };
+                        {/* Chat Section */}
+                        <div className="mb-4">
+                            <h3 className="h6 text-secondary mb-3">Start a Chat</h3>
+                            <form onSubmit={handleSubmit} className="mb-3">
+                                <div className="input-group">
+                                    <input
+                                        type="text"
+                                        id="targetName"
+                                        name="targetName"
+                                        value={formData.targetName}
+                                        onChange={handleChange}
+                                        className="form-control"
+                                        placeholder="Enter target username"
+                                    />
+                                    <button type="submit" className="btn btn-primary">
+                                        Chat
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
 
-    try {
-        console.log(addTargetData);
-        const response = await apiClient.post
-        ('/chat/find-target', addTargetData);
-        if (response.status == 204) {
-            console.log("No target found to chat with using target name: ",
-                addTargetData.target, " response: ", response);
-            return false;
-        } else {
-            console.log(
-                "Found target to chat with successfully! Response data: ",
-                response
-            );
-
-            if (response.satus = 200) {
-                setOpenedInChat(addTargetData.target);
-                return true;
-            }
-        }
-    } catch (error) {
-        console.log("Couldn't find target target to chat with using target name: ",
-            addTargetData.target);
-        console.error("Error during find target to chat with request: ",
-            error);
-        return false;
-    }
-
-}
+                        
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
 
 export default SidebarUi;
