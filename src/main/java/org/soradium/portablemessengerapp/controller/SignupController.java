@@ -1,11 +1,13 @@
 package org.soradium.portablemessengerapp.controller;
 
+import lombok.extern.slf4j.Slf4j;
 import org.soradium.portablemessengerapp.dto.UsernameAsObjectDto;
 import org.soradium.portablemessengerapp.entity.User;
 import org.soradium.portablemessengerapp.service.UserServiceImpl;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Controller;
 
+@Slf4j
 @Controller
 public class SignupController {
     // сайнап контроллер нужен для обработки сообщения от фронтапи
@@ -22,8 +24,16 @@ public class SignupController {
             containerFactory = "kafkaListenerUsernameAsDtoContainerFactory"
     )
     public void addNewUser(UsernameAsObjectDto user) {
-        User u = new User();
-        u.setUsername(user.username());
-        service.createUser(u);
+        log.debug("Attempting to add user: {}", user.username());
+        try {
+            User u = new User();
+            u.setUsername(user.username());
+            service.createUser(u);
+            log.debug("Added user successfully: {}", user.username());
+        } catch (Exception e) {
+            log.error("User insertion failed, name: {}, exception: {}",
+                    user.username(), e.getMessage());
+            throw e;
+        }
     }
 }
