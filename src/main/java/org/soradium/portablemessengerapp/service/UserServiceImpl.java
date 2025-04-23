@@ -11,7 +11,7 @@ import java.util.List;
 
 @Service
 @Transactional
-public class UserServiceImpl {
+public class UserServiceImpl implements UserService{
 //    RingBufferListWithLimitedSize<User> buffer
 //            = new RingBufferListWithLimitedSize<>(100);
 

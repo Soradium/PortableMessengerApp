@@ -8,9 +8,7 @@ import org.soradium.portablemessengerapp.dto.SentMessageDto;
 import org.soradium.portablemessengerapp.entity.Chat;
 import org.soradium.portablemessengerapp.entity.Message;
 import org.soradium.portablemessengerapp.entity.User;
-import org.soradium.portablemessengerapp.service.ChatServiceImpl;
-import org.soradium.portablemessengerapp.service.MessageServiceImpl;
-import org.soradium.portablemessengerapp.service.UserServiceImpl;
+import org.soradium.portablemessengerapp.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -25,15 +23,15 @@ import java.util.List;
 @Controller
 public class ChatController {
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    private final MessageServiceImpl messageService;
-    private final UserServiceImpl userService;
-    private final ChatServiceImpl chatService;
+    private final MessageService messageService;
+    private final UserService userService;
+    private final ChatService chatService;
 
     @Autowired
     public ChatController(
-            ChatServiceImpl chatService,
-            UserServiceImpl userService,
-            MessageServiceImpl messageService,
+            ChatService chatService,
+            UserService userService,
+            MessageService messageService,
             KafkaTemplate<String, Object> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
         this.chatService = chatService;

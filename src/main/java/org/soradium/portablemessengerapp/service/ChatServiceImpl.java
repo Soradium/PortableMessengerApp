@@ -12,7 +12,7 @@ import java.util.Optional;
 
 @Service
 @Transactional
-public class ChatServiceImpl {
+public class ChatServiceImpl implements ChatService{
     private final ChatRepository repository;
 
     public ChatServiceImpl(@Autowired ChatRepository repository) {
