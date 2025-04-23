@@ -11,7 +11,7 @@ import java.util.List;
 
 @Service
 @Transactional
-public class UserServiceImpl {
+public class UserServiceImpl implements UserService {
 //    RingBufferListWithLimitedSize<User> buffer
 //            = new RingBufferListWithLimitedSize<>(100);
 
@@ -37,10 +37,6 @@ public class UserServiceImpl {
 
     public List<User> findAllUsers() {
         return repository.findAll();
-    }
-
-    public UserRepository getRepository() {
-        return repository;
     }
 
     @Autowired

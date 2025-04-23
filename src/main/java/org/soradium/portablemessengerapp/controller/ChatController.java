@@ -8,15 +8,13 @@ import org.soradium.portablemessengerapp.dto.SentMessageDto;
 import org.soradium.portablemessengerapp.entity.Chat;
 import org.soradium.portablemessengerapp.entity.Message;
 import org.soradium.portablemessengerapp.entity.User;
-import org.soradium.portablemessengerapp.service.ChatServiceImpl;
-import org.soradium.portablemessengerapp.service.MessageServiceImpl;
-import org.soradium.portablemessengerapp.service.UserServiceImpl;
+import org.soradium.portablemessengerapp.service.ChatService;
+import org.soradium.portablemessengerapp.service.MessageService;
+import org.soradium.portablemessengerapp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,15 +23,15 @@ import java.util.List;
 @Controller
 public class ChatController {
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    private final MessageServiceImpl messageService;
-    private final UserServiceImpl userService;
-    private final ChatServiceImpl chatService;
+    private final MessageService messageService;
+    private final UserService userService;
+    private final ChatService chatService;
 
     @Autowired
     public ChatController(
-            ChatServiceImpl chatService,
-            UserServiceImpl userService,
-            MessageServiceImpl messageService,
+            ChatService chatService,
+            UserService userService,
+            MessageService messageService,
             KafkaTemplate<String, Object> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
         this.chatService = chatService;
@@ -54,7 +52,7 @@ public class ChatController {
                 , sender, receiver);
         try {
             User senderUser = userService.getUserWithFriendsByUsername(sender);
-            if(senderUser == null) {
+            if (senderUser == null) {
                 String warnMsg = "Can't send message to user '" +
                         receiver + "': Sender '" + sender
                         + "' does not exist";
@@ -63,12 +61,12 @@ public class ChatController {
                         "chat-response",
                         new SentMessageDto(sender,
                                 "Can't send message to user " + receiver +
-                                "': Sender '" + sender
+                                        "': Sender '" + sender
                                         + "' does not exist")
                 );
                 return;
             }
-            if(senderUser.getFriends().isEmpty()) {
+            if (senderUser.getFriends().isEmpty()) {
                 String warnMsg = "Can't send message to user '" +
                         receiver + "': Sender '" + sender
                         + "' does not have any friends";

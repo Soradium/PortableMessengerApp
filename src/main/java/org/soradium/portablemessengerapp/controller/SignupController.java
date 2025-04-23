@@ -3,7 +3,7 @@ package org.soradium.portablemessengerapp.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.soradium.portablemessengerapp.dto.UsernameAsObjectDto;
 import org.soradium.portablemessengerapp.entity.User;
-import org.soradium.portablemessengerapp.service.UserServiceImpl;
+import org.soradium.portablemessengerapp.service.UserService;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Controller;
 
@@ -12,14 +12,14 @@ import org.springframework.stereotype.Controller;
 public class SignupController {
     // сайнап контроллер нужен для обработки сообщения от фронтапи
     // что он зарегал нового юзера (в базу тут то надо записаться для энтитей)
-    private UserServiceImpl service;
+    private final UserService service;
 
-    public SignupController(UserServiceImpl service) {
+    public SignupController(UserService service) {
         this.service = service;
     }
 
     @KafkaListener(
-            id="add_new_user",
+            id = "add_new_user",
             topics = "auth-send",
             containerFactory = "kafkaListenerUsernameAsDtoContainerFactory"
     )

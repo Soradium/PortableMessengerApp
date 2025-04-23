@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.soradium.portablemessengerapp.dto.FriendRequestResponseDto;
 import org.soradium.portablemessengerapp.dto.FriendRequestSenderAndReceiverDto;
 import org.soradium.portablemessengerapp.entity.User;
-import org.soradium.portablemessengerapp.service.UserServiceImpl;
+import org.soradium.portablemessengerapp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -14,13 +14,13 @@ import org.springframework.stereotype.Controller;
 @Controller
 public class FriendsController {
 
-    private final UserServiceImpl userService;
+    private final UserService userService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     // move into thread pools, work with requests as futures
 
     @Autowired
     public FriendsController(
-            UserServiceImpl userService,
+            UserService userService,
             KafkaTemplate<String, Object> kafkaMessageTemplate) {
         this.userService = userService;
         this.kafkaTemplate = kafkaMessageTemplate;

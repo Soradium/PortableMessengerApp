@@ -11,7 +11,7 @@ import java.util.List;
 
 @Service
 @Transactional
-public class MessageServiceImpl {
+public class MessageServiceImpl implements MessageService {
     private MessageRepository repository;
     private EntityManager em;
 

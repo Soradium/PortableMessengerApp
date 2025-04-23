@@ -4,26 +4,25 @@ import lombok.extern.slf4j.Slf4j;
 import org.soradium.portablemessengerapp.dto.FriendFetchResponseDto;
 import org.soradium.portablemessengerapp.dto.UserRequesterAndUserRequestedToDto;
 import org.soradium.portablemessengerapp.entity.User;
-import org.soradium.portablemessengerapp.service.MessageServiceImpl;
+import org.soradium.portablemessengerapp.service.MessageService;
+import org.soradium.portablemessengerapp.service.UserService;
 import org.soradium.portablemessengerapp.service.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @Controller
 public class SidebarUiController {
 
-    private final MessageServiceImpl messageService;
-    private final UserServiceImpl userService;
+    private final MessageService messageService;
+    private final UserService userService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Autowired
     public SidebarUiController(
-            MessageServiceImpl messageService,
+            MessageService messageService,
             UserServiceImpl userService,
             KafkaTemplate<String, Object> kafkaTemplate) {
         this.messageService = messageService;
@@ -67,8 +66,8 @@ public class SidebarUiController {
             );
         } catch (Exception e) {
             log.error("Could not get chat target, " +
-                    "requester: {}, requested to: {}," +
-                    " exception: {}",
+                            "requester: {}, requested to: {}," +
+                            " exception: {}",
                     requester,
                     requestedTo, e.getMessage());
             throw e;
