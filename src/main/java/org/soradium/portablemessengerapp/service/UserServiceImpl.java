@@ -1,95 +1,107 @@
 package org.soradium.portablemessengerapp.service;
 
+import jakarta.annotation.PreDestroy;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
+import org.hibernate.Hibernate;
 import org.soradium.portablemessengerapp.entity.User;
 import org.soradium.portablemessengerapp.repository.UserRepository;
+import org.soradium.portablemessengerapp.tools.BufferList;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 @Transactional
+@Slf4j
 public class UserServiceImpl implements UserService{
-//    RingBufferListWithLimitedSize<User> buffer
-//            = new RingBufferListWithLimitedSize<>(100);
+    private final BufferList<User> bufferList;
+    private final UserRepository repository;
 
-    private UserRepository repository;
-    private EntityManager em;
-
-    public UserServiceImpl() {
-
-    }
-
+    @Autowired
     public UserServiceImpl(
-            UserRepository repository) {
+            UserRepository repository,
+            @Qualifier("userRingBuffer") BufferList<User> bufferList) {
         this.repository = repository;
+        this.bufferList = bufferList;
     }
 
+    // Don't forget the predestroy!
     public User createUser(User user) {
-        return repository.save(user);
+        User userOverwritten = bufferList.addToList(user.getUsername(), user);
+        if(userOverwritten != null) {
+            repository.save(userOverwritten);
+        }
+        return user;
+    }
+
+    public User getUserByUsername(String username) {
+        try {
+            User u = bufferList.getByString(username);
+            if(u != null) {
+                return u;
+            }
+            u = repository
+                    .getUserByUsername(username)
+                    .orElse(null);
+            User cachedOut = bufferList.addToList(username, u);
+            if(cachedOut != null) {
+                repository.save(cachedOut);
+            }
+            return u;
+        } catch (Exception e) {
+            log.error("Couldn't get user: {}, exception: {}",
+                    username, e.getMessage());
+            throw e;
+        }
+    }
+
+    public User getUserWithFriendsByUsername(String username) {
+        User u = getUserByUsername(username);
+        if (u != null) {
+            if(!Hibernate.isInitialized(u.getFriends())) {
+                Hibernate.initialize(u.getFriends());
+                bufferList.setByString(username, u);
+            }
+        }
+        return u;
     }
 
     public User updateUser(User user) {
-        return repository.save(user);
+        String username = user.getUsername();
+        User u = bufferList.getByString(username);
+        if(u == null) {
+            bufferList.addToList(username, user);
+            return repository.save(user);
+        }
+        else {
+            return bufferList.setByString(username, user);
+        }
     }
 
     public List<User> findAllUsers() {
         return repository.findAll();
     }
 
-    public UserRepository getRepository() {
-        return repository;
-    }
-
-    @Autowired
-    public void setRepository(
-            UserRepository repository) throws Exception {
-        if (repository != null) {
-            this.repository = repository;
-        } else {
-            throw new Exception(
-                    "No repository " +
-                            "bean found!");
-        }
-    }
-
-    public User getUserByUsername(String username) {
-        return repository
-                .getUserByUsername(username)
-                .orElse(null);
-    }
-
     public User deleteUserByUsername(String username) {
+        bufferList.setByString(username, null);
+
         return repository
                 .deleteByUsername(username)
                 .orElse(null);
-    }
-
-    public User getUserWithFriendsByUsername(String username) {
-        User u = getUserByUsername(username);
-        if (u != null) {
-            u.getFriends().size();
-        }
-        return u;
-    }
-
-    @Autowired
-    public void setEntityManager(
-            EntityManager em) throws Exception {
-        if (em != null) {
-            this.em = em;
-        } else {
-            throw new Exception(
-                    "No entity manager " +
-                            "bean found!");
-        }
     }
 
     public boolean checkFriendship(User fU, User sU) {
         return fU.getFriends().contains(sU);
     }
 
-
+    @PreDestroy
+    public void saveAllUsers() {
+        repository.saveAll(bufferList.getList());
+    }
 }

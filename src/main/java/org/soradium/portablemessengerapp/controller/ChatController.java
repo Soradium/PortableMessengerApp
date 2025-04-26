@@ -1,5 +1,6 @@
 package org.soradium.portablemessengerapp.controller;
 
+import jakarta.persistence.*;
 import lombok.extern.slf4j.Slf4j;
 import org.soradium.portablemessengerapp.dto.MessageDto;
 import org.soradium.portablemessengerapp.dto.RequestMessageListDto;
@@ -117,7 +118,7 @@ public class ChatController {
                     chat,
                     senderUser))
             );
-            chat = chatService.saveChat(chat);
+//            chat = chatService.saveChat(chat);
 
             log.info("Message from '{}' to '{}' saved and chat updated", sender, receiver);
 
@@ -189,3 +190,4 @@ public class ChatController {
         }
     }
 }
+
