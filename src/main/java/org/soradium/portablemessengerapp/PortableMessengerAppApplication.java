@@ -11,9 +11,11 @@ public class PortableMessengerAppApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(PortableMessengerAppApplication.class, args);
+
     }
 
     @Bean
+    @Deprecated
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
             @Override
@@ -23,7 +25,6 @@ public class PortableMessengerAppApplication {
                         .allowedOrigins("http://localhost:3000")
                         .allowedMethods("*")
                         .allowedHeaders("*")
-//                        .exposedHeaders("XSRF-TOKEN")
                         .allowCredentials(true).maxAge(3600);
             }
         };

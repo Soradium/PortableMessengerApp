@@ -16,6 +16,5 @@ public interface MessageService {
 
     List<Message> findAllMessages();
 
-    MessageRepository getRepository();
 }
 

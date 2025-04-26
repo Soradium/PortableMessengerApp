@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
-// add fetch types for m-m/etc. connections
 @Entity(name = "users")
 public class User {
     @Id
