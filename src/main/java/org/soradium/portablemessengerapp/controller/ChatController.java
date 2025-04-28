@@ -1,6 +1,5 @@
 package org.soradium.portablemessengerapp.controller;
 
-import jakarta.persistence.*;
 import lombok.extern.slf4j.Slf4j;
 import org.soradium.portablemessengerapp.dto.MessageDto;
 import org.soradium.portablemessengerapp.dto.RequestMessageListDto;
@@ -9,13 +8,13 @@ import org.soradium.portablemessengerapp.dto.SentMessageDto;
 import org.soradium.portablemessengerapp.entity.Chat;
 import org.soradium.portablemessengerapp.entity.Message;
 import org.soradium.portablemessengerapp.entity.User;
-import org.soradium.portablemessengerapp.service.*;
+import org.soradium.portablemessengerapp.service.ChatService;
+import org.soradium.portablemessengerapp.service.MessageService;
+import org.soradium.portablemessengerapp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,7 +52,7 @@ public class ChatController {
                 , sender, receiver);
         try {
             User senderUser = userService.getUserWithFriendsByUsername(sender);
-            if(senderUser == null) {
+            if (senderUser == null) {
                 String warnMsg = "Can't send message to user '" +
                         receiver + "': Sender '" + sender
                         + "' does not exist";
@@ -62,12 +61,12 @@ public class ChatController {
                         "chat-response",
                         new SentMessageDto(sender,
                                 "Can't send message to user " + receiver +
-                                "': Sender '" + sender
+                                        "': Sender '" + sender
                                         + "' does not exist")
                 );
                 return;
             }
-            if(senderUser.getFriends().isEmpty()) {
+            if (senderUser.getFriends().isEmpty()) {
                 String warnMsg = "Can't send message to user '" +
                         receiver + "': Sender '" + sender
                         + "' does not have any friends";

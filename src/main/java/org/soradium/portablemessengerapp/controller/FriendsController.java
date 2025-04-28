@@ -3,13 +3,16 @@ package org.soradium.portablemessengerapp.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.soradium.portablemessengerapp.dto.FriendRequestResponseDto;
 import org.soradium.portablemessengerapp.dto.FriendRequestSenderAndReceiverDto;
+import org.soradium.portablemessengerapp.dto.UsernameAsObjectDto;
 import org.soradium.portablemessengerapp.entity.User;
 import org.soradium.portablemessengerapp.service.UserService;
-import org.soradium.portablemessengerapp.service.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Controller;
+import org.soradium.portablemessengerapp.dto.FriendsListFetchResponseDto;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Controller
@@ -27,7 +30,23 @@ public class FriendsController {
         this.kafkaTemplate = kafkaMessageTemplate;
     }
 
-    // WILL BECOME KAFKA LISTENER
+    @KafkaListener(
+            id = "fetch_friend_list_request",
+            topics = "friendlist-fetch-send",
+            containerFactory = "kafkaListenerUsernameAsDtoContainerFactory"
+    )
+    public void fetchFriends(UsernameAsObjectDto object) {
+        String requesterUsername = object.username();
+        User u = userService.getUserWithFriendsByUsername(requesterUsername);
+        List<String> friends = u.getFriends().stream()
+                .map(User::getUsername).toList();
+        kafkaTemplate.send(
+                "friendlist-fetch-response",
+                new FriendsListFetchResponseDto(requesterUsername, friends)
+                );
+
+    }
+
     @KafkaListener(
             id = "add_friend",
             topics = "friend-add",

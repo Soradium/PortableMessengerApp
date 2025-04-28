@@ -1,7 +1,6 @@
 package org.soradium.portablemessengerapp.service;
 
 import org.soradium.portablemessengerapp.entity.Message;
-import org.soradium.portablemessengerapp.repository.MessageRepository;
 
 import java.util.List;
 

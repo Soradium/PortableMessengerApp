@@ -1,7 +1,6 @@
 package org.soradium.portablemessengerapp.service;
 
 import jakarta.annotation.PreDestroy;
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
@@ -10,8 +9,6 @@ import org.soradium.portablemessengerapp.repository.UserRepository;
 import org.soradium.portablemessengerapp.tools.BufferList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,7 +16,7 @@ import java.util.List;
 @Service
 @Transactional
 @Slf4j
-public class UserServiceImpl implements UserService{
+public class UserServiceImpl implements UserService {
     private final BufferList<User> bufferList;
     private final UserRepository repository;
 
@@ -34,7 +31,7 @@ public class UserServiceImpl implements UserService{
     // Don't forget the predestroy!
     public User createUser(User user) {
         User userOverwritten = bufferList.addToList(user.getUsername(), user);
-        if(userOverwritten != null) {
+        if (userOverwritten != null) {
             repository.save(userOverwritten);
         }
         return user;
@@ -43,14 +40,14 @@ public class UserServiceImpl implements UserService{
     public User getUserByUsername(String username) {
         try {
             User u = bufferList.getByString(username);
-            if(u != null) {
+            if (u != null) {
                 return u;
             }
             u = repository
                     .getUserByUsername(username)
                     .orElse(null);
             User cachedOut = bufferList.addToList(username, u);
-            if(cachedOut != null) {
+            if (cachedOut != null) {
                 repository.save(cachedOut);
             }
             return u;
@@ -63,11 +60,15 @@ public class UserServiceImpl implements UserService{
 
     public User getUserWithFriendsByUsername(String username) {
         User u = getUserByUsername(username);
-        if (u != null) {
-            if(!Hibernate.isInitialized(u.getFriends())) {
-                Hibernate.initialize(u.getFriends());
+        try {
+            if (u != null && !Hibernate.isInitialized(u.getFriends())) {
+                u = repository.userFetchFriends(username)
+                        .orElseThrow();
                 bufferList.setByString(username, u);
             }
+        } catch (Exception e) {
+            log.error("Error in fetching user: {}, exception: {}", username, e.getMessage());
+            throw e;
         }
         return u;
     }
@@ -75,11 +76,10 @@ public class UserServiceImpl implements UserService{
     public User updateUser(User user) {
         String username = user.getUsername();
         User u = bufferList.getByString(username);
-        if(u == null) {
+        if (u == null) {
             bufferList.addToList(username, user);
             return repository.save(user);
-        }
-        else {
+        } else {
             return bufferList.setByString(username, user);
         }
     }

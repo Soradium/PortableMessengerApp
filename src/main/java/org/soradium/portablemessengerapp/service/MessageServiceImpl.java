@@ -1,7 +1,6 @@
 package org.soradium.portablemessengerapp.service;
 
 import jakarta.annotation.PreDestroy;
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.soradium.portablemessengerapp.entity.Message;
