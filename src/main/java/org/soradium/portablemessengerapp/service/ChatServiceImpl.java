@@ -12,9 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Optional;
-
 @Service
 @Transactional
 @Slf4j
@@ -63,8 +60,18 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public Chat getChatByTwoUsers(User firstUser, User secondUser) {
         for (Chat chat : bufferList.getList()) {
-            if ((chat.getFirstUser().equals(firstUser) && chat.getSecondUser().equals(secondUser)) ||
-                    (chat.getFirstUser().equals(secondUser) && chat.getSecondUser().equals(firstUser))) {
+            if ((chat.getFirstUser()
+                    .getUsername()
+                    .equals(firstUser.getUsername())
+                    && chat.getSecondUser()
+                    .getUsername()
+                    .equals(secondUser.getUsername()))
+                    || (chat.getFirstUser()
+                            .getUsername()
+                            .equals(secondUser.getUsername())
+                            && chat.getSecondUser()
+                            .getUsername()
+                            .equals(firstUser.getUsername()))) {
                 return chat;
             }
         }
@@ -94,6 +101,9 @@ public class ChatServiceImpl implements ChatService {
         Chat chat = getChatByTwoUsers(firstUser, secondUser);
         if (chat != null && !Hibernate.isInitialized(chat.getMessages())) {
             Hibernate.initialize(chat.getMessages());
+            chat = repository
+                    .getChatByTwoUsersWithMessages(firstUser.getUsername(), secondUser.getUsername())
+                    .orElseThrow();
             bufferList.setByString(String.valueOf(chat.getId()), chat);
         }
         return chat;
@@ -120,7 +130,7 @@ public class ChatServiceImpl implements ChatService {
         chat = repository.findById(id).orElse(null);
         if (chat != null) {
             Chat cachedChat = bufferList.addToList(String.valueOf(chat.getId()), chat);
-            if(cachedChat != null) {
+            if (cachedChat != null) {
                 repository.save(cachedChat);
             }
         }

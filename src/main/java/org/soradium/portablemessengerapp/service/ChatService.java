@@ -19,5 +19,5 @@ public interface ChatService {
     void deleteChat(Chat chat);
 
     Chat getChatById(long id);
-    
+
 }
